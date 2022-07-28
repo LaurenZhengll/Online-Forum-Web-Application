@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>My Detail</title>
+		<script src="js/jquery.js"></script>
+		<script src="js/afquery.js"></script>
+		<script src="js/vue.js"></script>
+		<link rel="stylesheet" href="element-ui/lib/theme-chalk/index.css">
+		<script src="element-ui/lib/index.js"></script>
+		<style>
+			.el-header {
+				background-color: #B3C0D1;
+				color: #333;
+				line-height: 60px;
+			}
+
+			.el-aside {
+				color: #333;
+			}
+
+			.itemlist {
+				margin: 15px 0;
+			}
+
+			.itemlist .item {
+				display: inline-block;
+				width: 200px;
+				text-align: center;
+				margin-bottom: 20px;
+			}
+
+			.itemlist .item .icon {
+				display: inline-block;
+				width: auto;
+				margin: 10px;
+				max-width:180px;
+				max-height: 180px;
+				height:auto;
+			}
+
+			.itemlist .title {
+				font-size: 90%;
+			}
+
+			.gray {
+				-webkit-filter: grayscale(100%);
+				-moz-filter: grayscale(100%);
+				-ms-filter: grayscale(100%);
+				-o-filter: grayscale(100%);
+
+				filter: grayscale(100%);
+
+				filter: gray;
+				pointer-events: none;
+			}
+
+			.avatar-uploader .el-upload {
+				border: 1px dashed #d9d9d9;
+				border-radius: 6px;
+				cursor: pointer;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.avatar-uploader .el-upload:hover {
+				border-color: #409EFF;
+			}
+
+			.avatar-uploader-icon {
+				font-size: 28px;
+				color: #8c939d;
+				width: 160px;
+				height: 160px;
+				line-height: 160px;
+				text-align: center;
+			}
+
+			.avatar {
+				width: 160px;
+				height: 160px;
+				display: block;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="app">
+			<el-container style="height: 650px; border: 1px solid #eee">
+				<el-header style="text-align: left; font-size: 18px">
+					<el-link :underline="false" onclick="my.go_home()">
+						<i class="el-icon-back" style="margin-right: 20px"></i>
+					</el-link>
+					<span>Hello, {{userName}}</span>
+				</el-header>
+
+
+				<el-container style="height: 440px; border: 1px solid #eee">
+					<el-aside width="200px" style="background-color: rgb(238, 241, 246)">
+						<el-menu>
+							<el-menu-item index="1" onclick="my.view_profile()">
+								<template slot="title"><i class="el-icon-user-solid"></i>My Profile</template>
+							</el-menu-item>
+							<el-menu-item index="2" onclick="my.view_star()">
+								<template slot="title"><i class="el-icon-star-on"></i>My Star</template>
+							</el-menu-item>
+							<el-menu-item index="3" onclick="my.view_product()">
+								<template slot="title"><i class="el-icon-s-goods"></i>My Product</template>
+							</el-menu-item>
+							<el-menu-item index="4" disabled>
+								<template slot="title"><i class="el-icon-s-comment"></i>My Message</template>
+							</el-menu-item>
+						</el-menu>
+					</el-aside>
+
+					<el-main>
+						<div class='itemlist'>
+							<div class='item' v-for="(item, index) in items" :id2="item.comID">
+								<template v-if="item.status">
+									<img class='icon' :src='item.iconUrl' onclick="my.item_clicked(this)"> <br>
+									<el-link class='title' onclick="my.item_clicked(this)">{{item.title}}</el-link>
+								</template>
+								<template v-else="item.status">
+									<img class='icon gray' :src='item.iconUrl'> <br>
+									<el-link class='title' disabled>{{item.title}}</el-link>
+								</template>
+							</div>
+							<el-form label-width="80px"
+								style="width: 30%; position:absolute; left:180px; top:100px;"
+								:style="{visibility: formVisibility}" @submit.native.prevent>
+								
+								<template v-if="authorized">
+									<el-form-item>
+										<el-input v-model="row.userName" placeholder="Username"></el-input>
+									</el-form-item>
+									<el-form-item>
+										<el-input v-model="row.password" placeholder="Password" show-password></el-input>
+									</el-form-item>
+									<el-form-item>
+										<el-input v-model="confirm" placeholder="Confirm password" show-password></el-input>
+									</el-form-item>
+									<el-form-item>
+										<el-input v-model="row.email" placeholder="E-mail address"></el-input>
+									</el-form-item>
+									<el-form-item>
+										<el-input v-model="row.phone" placeholder="Phone number"></el-input>
+									</el-form-item>
+									<el-form-item>
+										<el-upload class="avatar-uploader" :action="uploadUrl" :show-file-list="false"
+											:on-success="handleUpload">
+											<img v-if="avatarUrl" :src="avatarUrl" class="avatar">
+											<i v-else class="el-icon-plus avatar-uploader-icon"></i>
+										</el-upload>
+									</el-form-item>
+									<el-form-item>
+										<el-button type="primary" onclick="my.do_save()">Save</el-button>
+									</el-form-item>
+								</template>
+								<template v-else>
+									<el-form-item label="*">
+										<el-input v-model="oldPassword" placeholder="Please input your current password" show-password onchange="my.do_check()"></el-input>
+									</el-form-item>
+									<el-form-item>
+										<el-button type="primary" onclick="my.do_check()">Check</el-button>
+									</el-form-item>
+								</template>
+							</el-form>
+						</div>
+						<el-pagination background layout="prev, pager, next" :current-page="page"
+							:page-count="pageCount" @current-change="handlePageChange"
+							:style="{visibility: footerVisibility}">
+						</el-pagination>
+					</el-main>
+				</el-container>
+			</el-container>
+
+		</div>
+	</body>
+	<script>
+		var my = {}
+
+		my.page = Number(Af.getUrlParam('page', 1));
+		my.userid = Number(Af.getUrlParam('userid'), 0);
+		my.index = Number(Af.getUrlParam('index'), 1);
+
+		// do when refresh
+		my.do_load = function() {
+			if (my.index == 1) {
+				my.do_query();
+			}
+			if (my.index == 2) {
+				my.view_star();
+			}
+			if (my.index == 3) {
+				my.view_product();
+			}
+		}
+
+		my.view_profile = function() {
+			app.index = 1;
+			app.isIndexOne = true;
+			my.helper_change_index(app.index);
+			app.items = [];
+			my.do_query();
+		}
+
+		my.view_star = function() {
+			let req = {};
+			req.userid = my.userid;
+			req.page = my.page;
+			app.index = 2;
+			app.isIndexOne = false;
+			my.helper_change_index(app.index);
+			Af.rest('StarQuery', req, function(ret) {
+				if (typeof(ret.data) != "undefined") { 
+					app.items = ret.data.items;
+					app.page = ret.data.page;
+					app.pageCount = ret.data.pageCount;
+				} else { 
+					// if no resource return, keep items clear. 
+					// E.g. My Star no, My Product have. Change from product to star need to refresh.
+					app.items = [];
+				}
+
+			})
+		}
+
+		my.view_product = function() {
+			let req = {};
+			req.userid = my.userid;
+			req.page = my.page;
+			app.index = 3;
+			app.isIndexOne = false;
+			my.helper_change_index(app.index);
+			Af.rest('CommodityQuery', req, function(ret) {
+				if (typeof(ret.data) != "undefined") {
+					app.items = ret.data.items;
+					app.page = ret.data.page;
+					app.pageCount = ret.data.pageCount;
+				} else {
+					app.items = [];
+				}
+			})
+		}
+
+		my.view_message = function() {
+			app.index = 4;
+			app.isIndexOne = false;
+			my.helper_change_index(app.index);
+			app.items = [];
+		}
+
+		my.helper_change_index = function(idx) {
+			const url = new URL(window.location);
+			if (!url.searchParams.has('index')) {
+				const newUrl = url + '&index=' + idx;
+				history.pushState('', '', newUrl);
+			} else if (!url.searchParams.has('index=' + idx)) {
+				url.searchParams.delete('index');
+				const newUrl = url + '&index=' + idx;
+				history.pushState('', '', newUrl);
+			}
+		}
+
+		my.item_clicked = function(dom) {
+			let id = $(dom).parent().attr('id2');
+			location.href = 'commodity_detail.html?id=' + id + '&userid=' + my.userid;
+		}
+		
+		my.do_query = function() {
+			let req = {}
+			req.userid = my.userid;
+			Af.rest('UserView', req, function(ret) {
+				if (ret.error != 0) {
+					app.$alert(ret.reason,'',{confirmButtonText:'OK'});
+					return;
+				}
+				app.row = ret.data;
+				app.userName = ret.data.userName;
+				app.confirm = ret.data.password;
+				if(app.row.avatarUrl!=null) app.avatarUrl = app.row.avatarUrl;
+			})
+		}
+		
+		my.do_save = function() {
+			if (app.confirm !== app.row.password) {
+				app.$message.error("Password doesn't match the rule, please retype!");
+			} else {
+				let req = app.row;
+				req.userID = my.userid;
+				Af.rest('UserSave', req, function(ret) {
+					app.$alert('Success update your profile!','',{confirmButtonText:'OK'});
+				})
+			}
+		}
+		
+		my.do_check = function(){
+			let req = {};
+			req.userID = my.userid;
+			req.password = app.oldPassword;
+			Af.rest('UserCheck', req, function(ret) {
+				if(ret.error == 0){
+					app.authorized = true;
+				}
+				else{
+					console.log(ret.reason);
+					app.$alert('Wrong password!','',{confirmButtonText:'OK'});
+				}
+				
+			})
+		}
+
+		my.go_home = function() {
+			location.href = 'index.html?userid=' + my.userid;
+		}
+
+		var app = new Vue({
+			el: "#app",
+			data: {
+				row: {},
+				confirm: '',
+				items: [],
+				pageCount: 0,
+				page: 0,
+				index: 1,
+				isIndexOne: true,
+				uploadUrl: 'AvatarUpload?userid=' + my.userid,
+				iconUrl: '',
+				avatarUrl: '',
+				oldPassword: '',
+				authorized: false,
+				userName: ''
+			},
+			methods: {
+				handlePageChange(val) {
+					location.href = 'my_detail.html?page=' + val + '&userid=' + my.userid + '&index=' + app.index;
+					my.view_star();
+				},
+				handleUpload(resp, file) {
+					this.avatarUrl = resp.data;
+				},
+			},
+			computed: {
+				footerVisibility: function() {
+					if (this.isIndexOne) {
+						return 'hidden';
+					} else {
+						return 'visible';
+					}
+				},
+				formVisibility: function() {
+					if (!this.isIndexOne) {
+						return 'hidden';
+					} else {
+						return 'visible';
+					}
+				}
+			},
+		})
+
+		my.do_load();
+		my.do_query();
+	</script>
+</html>
