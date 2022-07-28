@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Commodity Detail</title>
+		<script src="js/jquery.js"></script>
+		<script src="js/afquery.js"></script>
+		<script src="js/vue.js"></script>
+		<link rel="stylesheet" href="element-ui/lib/theme-chalk/index.css">
+		<script src="element-ui/lib/index.js"></script>
+		<link rel="stylesheet" href="css/commodity_detail.css" />
+	</head>
+	<body>
+		<div id="app">
+			<div class='main'>
+				<el-container class='info'>
+					<el-aside width="220px" style='text-align: center;'>
+						<img :src='row.iconUrl' style='width:180px'>
+					</el-aside>
+					<el-main>
+						<el-row>
+							<el-col :span="12">
+								<div class="grid-content title">
+									{{row.title}}
+								</div>
+							</el-col>
+							<el-col :span="12">
+								<el-button type="warning" :icon="iconState" circle onclick="my.do_star()"></el-button>
+							</el-col>
+						</el-row>
+
+						<el-row>
+							<el-col :span="3">
+								<div class="grid-content ">
+									Pirce:
+								</div>
+							</el-col>
+							<el-col :span="9">
+								<div class="grid-content ">
+									{{row.price}}
+								</div>
+							</el-col>
+							<el-col :span="3">
+								<div class="grid-content ">
+									Stock:
+								</div>
+							</el-col>
+							<el-col :span="9">
+								<div class="grid-content ">
+									{{row.stock}}
+								</div>
+							</el-col>
+						</el-row>
+						<el-row>
+							<el-col :span="3">
+								<div class="grid-content ">
+									Seller:
+								</div>
+							</el-col>
+							<el-col :span="9">
+								<div class="grid-content ">
+									{{sellerName}}
+								</div>
+							</el-col>
+							<el-col :span="3">
+								<div class="grid-content ">
+									Phone:
+								</div>
+							</el-col>
+							<el-col :span="9">
+								<div class="grid-content ">
+									{{sellerPhone}}
+								</div>
+							</el-col>
+						</el-row>
+						<el-row>
+							<el-col :span="3">
+								<div class="grid-content  descr">
+									Description:
+								</div>
+							</el-col>
+							<el-col :span="21">
+								<div class="grid-content descr">
+									<div class='descr'>{{row.description}}</div>
+								</div>
+							</el-col>
+						</el-row>
+					</el-main>
+				</el-container>
+				<div style='margin-top: 50px;'>
+					<el-button type="primary" icon="el-icon-arrow-left" onclick="my.go_home()"></el-button>
+					<el-button icon="el-icon-edit" onclick='my.do_edit()' :style="{visibility: isOwner}"> Edit
+					</el-button>
+					<el-button icon="el-icon-delete" @click="open" :style="{visibility: isOwner}"> Delete </el-button>
+				</div>
+			</div>
+		</div>
+	</body>
+	<script>
+		var my = {}
+		my.id = Number(Af.getUrlParam('id'), 0);
+		my.userid = Number(Af.getUrlParam('userid'), 0);
+
+		my.do_query = function() {
+			var url = document.referrer;
+			console.log(document.referrer);
+			if (url.indexOf("my_detail.html") != -1 && url.indexOf("index=3") != -1) {
+				app.isOwner = 'visible';
+			} else {
+				app.isOwner = 'hidden';
+			}
+			let req = {};
+			req.id = my.id;
+			req.userid = my.userid;
+
+			Af.rest('CommodityView', req, function(ret) {
+				if (ret.error != 0) {
+					app.$alert(ret.reason,'',{confirmButtonText:'OK'});
+					return;
+				}
+				app.row = ret.data;
+				app.sellerID = ret.data.userID;
+				let req2 = {};
+				req2.userid = app.sellerID;
+				Af.rest('UserView', req2, function(ret){
+					if (ret.error != 0) {
+						app.$alert(ret.reason,'',{confirmButtonText:'OK'});
+						return;
+					}
+					app.sellerName = ret.data.userName;
+					app.sellerPhone = ret.data.phone;
+				})
+				if (app.row.iconUrl != null) app.iconUrl = app.row.iconUrl;
+				if (app.row.isStar) app.iconState = 'el-icon-star-on';
+			})
+		}
+
+		my.do_star = function() {
+			let req = {}
+			req.id = my.id;
+			req.userid = my.userid;
+			if (app.iconState === 'el-icon-star-off') {
+				Af.rest('StarAdd', req, function(ret) {
+					if (ret.error != 0) {
+						app.$alert(ret.reason,'',{confirmButtonText:'OK'});
+						return;
+					}
+					app.iconState = 'el-icon-star-on';
+				})
+			} else {
+				Af.rest('StarRemove', req, function(ret) {
+					if (ret.error != 0) {
+						app.$alert(ret.reason,'',{confirmButtonText:'OK'});
+						return;
+					}
+					app.iconState = 'el-icon-star-off';
+				})
+			}
+
+
+		}
+
+		my.go_home = function() {
+			window.location.href = document.referrer;
+		}
+
+		my.do_edit = function() {
+			window.open('commodity_edit.html?id=' + my.id);
+		}
+
+		var app = new Vue({
+			el: "#app",
+			data: {
+				iconState: 'el-icon-star-off',
+				row: {},
+				circleUrl: "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png",
+				src: 'https://cube.elemecdn.com/6/94/4d3ea53c084bad6931a56d5158a48jpeg.jpeg',
+				isOwner: "hidden",
+				sellerID: 0,
+				sellerName: '',
+				sellerPhone: '',
+			},
+			methods: {
+				open() {
+					this.$confirm('Confirm Delete?', 'Warning', {
+						confirmButtonText: 'Confirm',
+						cancelButtonText: 'Cancle',
+						type: 'warning'
+					}).then(() => {
+						let req = {};
+						req.id = my.id;
+						Af.rest('CommodityRemove', req, function(ret) {
+							if (ret.error != 0) {
+								app.$alert(ret.reason,'',{confirmButtonText:'OK'});
+								return;
+							}
+							location.href = 'index.html?userid=' + my.userid;
+						})
+						this.$message({
+							type: 'success',
+							message: 'Delete Success!'
+						});
+					}).catch(() => {
+						this.$message({
+							type: 'info',
+							message: 'Delete Cancle!'
+						});
+					});
+				}
+			}
+		})
+		my.do_query();
+	</script>
+</html>
